@@ -1,10 +1,11 @@
 {
   "name": "diagnose-endpoint",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node index.js --endpoint=https://gql.reddit.com"
   },
   "bin": {
     "diagnose-endpoint": "./index.js"

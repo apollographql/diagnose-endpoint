@@ -86,6 +86,7 @@ const options = program.opts();
           `    access-control-allow-origin: *`,
         ].join("\n")
       );
+      console.log(`(📫 Interested in previewing a local tunnel to bypass CORS requirements? Please let us know at https://docs.google.com/forms/d/e/1FAIpQLScUCi3PdMerraiy6GpD-QiC_9KEKVHr4oDL5Vef5fIvzqqQWg/viewform )`)
     }
   } catch (e) {
     switch (e.code) {
