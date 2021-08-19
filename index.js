@@ -21,7 +21,7 @@ const options = program.opts();
   let hasIdentifiedProblem = false;
   const identifyProblem = (...problemDescription) => {
     hasIdentifiedProblem = true;
-    console.log('⚠️ ', ...problemDescription);
+    console.log("⚠️ ", ...problemDescription);
   };
   try {
     console.log(`Diagnosing ${options.endpoint}`);
@@ -44,14 +44,17 @@ const options = program.opts();
     }
 
     if (
-      !(optionsResponse.headers["access-control-allow-methods"] && optionsResponse.headers["access-control-allow-methods"].includes("POST"))
+      !(
+        optionsResponse.headers["access-control-allow-methods"] &&
+        optionsResponse.headers["access-control-allow-methods"].includes("POST")
+      )
     ) {
       identifyProblem(
         `OPTIONS response is missing header 'access-control-allow-methods: POST'`
       );
     }
 
-    const postResponse = await got.post(options.endpoint, {
+    const pingResponse = await got.post(options.endpoint, {
       json: {
         query: `query Ping { __typename }`,
       },
@@ -61,20 +64,20 @@ const options = program.opts();
       throwHttpErrors: false,
     });
 
-    if (postResponse.statusCode === 401) {
+    if (pingResponse.statusCode === 401) {
       identifyProblem(
         `POST response returned 401. Are authorization headers or cookies required?`
       );
-    } else if (postResponse.statusCode === 404) {
+    } else if (pingResponse.statusCode === 404) {
       identifyProblem(
         `POST response returned 404. Is the url correct? Are authorization headers or cookies required?`
       );
     }
 
     if (
-      !postResponse.headers["access-control-allow-origin"] ||
-      (postResponse.headers["access-control-allow-origin"] !== "*" &&
-        postResponse.headers["access-control-allow-origin"] !== options.origin)
+      !pingResponse.headers["access-control-allow-origin"] ||
+      (pingResponse.headers["access-control-allow-origin"] !== "*" &&
+        pingResponse.headers["access-control-allow-origin"] !== options.origin)
     ) {
       identifyProblem(
         [
@@ -86,7 +89,9 @@ const options = program.opts();
           `    access-control-allow-origin: *`,
         ].join("\n")
       );
-      console.log(`(📫 Interested in previewing a local tunnel to bypass CORS requirements? Please let us know at https://docs.google.com/forms/d/e/1FAIpQLScUCi3PdMerraiy6GpD-QiC_9KEKVHr4oDL5Vef5fIvzqqQWg/viewform )`)
+      console.log(
+        `(📫 Interested in previewing a local tunnel to bypass CORS requirements? Please let us know at https://docs.google.com/forms/d/e/1FAIpQLScUCi3PdMerraiy6GpD-QiC_9KEKVHr4oDL5Vef5fIvzqqQWg/viewform )`
+      );
     }
   } catch (e) {
     switch (e.code) {
@@ -110,6 +115,32 @@ const options = program.opts();
         console.log(
           `Would you care to let us know about this? Please mailto:explorer-feedback@apollographql.com`
         );
+    }
+  }
+
+  if (!hasIdentifiedProblem) {
+    // Only check for introspection problems if there are no other problems found
+    const miniIntrospectionQueryResponse = await got.post(options.endpoint, {
+      json: {
+        query: `query MiniIntrospectionQuery {
+          __schema {
+            queryType { name }
+            mutationType { name }
+            subscriptionType { name }
+          }
+        }
+      `,
+      },
+      headers: {
+        origin: options.origin,
+      },
+      throwHttpErrors: false,
+    });
+
+    const responseData = JSON.parse(miniIntrospectionQueryResponse.body)
+
+    if (!('data' in responseData) || !('__schema' in responseData.data)) {
+      identifyProblem(`Introspection query received a response of ${miniIntrospectionQueryResponse.body}. Does introspection need to be turned on?`)
     }
   }
 
