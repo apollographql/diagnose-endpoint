@@ -19,10 +19,16 @@ const options = program.opts();
 
 (async () => {
   let hasIdentifiedProblem = false;
+  let hasIdentifiedCorsProblem = false;
   const identifyProblem = (...problemDescription) => {
     hasIdentifiedProblem = true;
     console.log("⚠️ ", ...problemDescription);
   };
+  const identifyCorsProblem = (...problemDescription) => {
+    identifyProblem(...problemDescription);
+    hasIdentifiedCorsProblem = true;
+  }
+
   try {
     console.log(`Diagnosing ${options.endpoint}`);
     const optionsResponse = await got(options.endpoint, {
@@ -49,7 +55,7 @@ const options = program.opts();
         optionsResponse.headers["access-control-allow-methods"].includes("POST")
       )
     ) {
-      identifyProblem(
+      identifyCorsProblem(
         `OPTIONS response is missing header 'access-control-allow-methods: POST'`
       );
     }
@@ -79,7 +85,7 @@ const options = program.opts();
       (pingResponse.headers["access-control-allow-origin"] !== "*" &&
         pingResponse.headers["access-control-allow-origin"] !== options.origin)
     ) {
-      identifyProblem(
+      identifyCorsProblem(
         [
           `POST response missing 'access-control-allow-origin' header.`,
           `If using cookie-based authentication, the following headers are required from your endpoint: `,
@@ -88,9 +94,6 @@ const options = program.opts();
           `Otherwise, a wildcard value would work:`,
           `    access-control-allow-origin: *`,
         ].join("\n")
-      );
-      console.log(
-        `(📫 Interested in previewing a local tunnel to bypass CORS requirements? Please let us know at https://docs.google.com/forms/d/e/1FAIpQLScUCi3PdMerraiy6GpD-QiC_9KEKVHr4oDL5Vef5fIvzqqQWg/viewform )`
       );
     }
   } catch (e) {
@@ -116,6 +119,12 @@ const options = program.opts();
           `Would you care to let us know about this? Please mailto:explorer-feedback@apollographql.com`
         );
     }
+  }
+
+  if (hasIdentifiedCorsProblem) {
+    console.log(
+      `(📫 Interested in previewing a local tunnel to bypass CORS requirements? Please let us know at https://docs.google.com/forms/d/e/1FAIpQLScUCi3PdMerraiy6GpD-QiC_9KEKVHr4oDL5Vef5fIvzqqQWg/viewform )`
+    );
   }
 
   if (!hasIdentifiedProblem) {
