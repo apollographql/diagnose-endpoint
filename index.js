@@ -34,6 +34,7 @@ const options = program.opts();
     const optionsResponse = await got(options.endpoint, {
       method: "OPTIONS",
       headers: {
+        "access-control-request-method": "POST",
         origin: options.origin,
       },
       throwHttpErrors: false,
@@ -146,11 +147,20 @@ const options = program.opts();
       throwHttpErrors: false,
     });
 
-    const responseData = JSON.parse(miniIntrospectionQueryResponse.body)
+    try {
+      const responseData = JSON.parse(miniIntrospectionQueryResponse.body)
 
-    if (!('data' in responseData) || !('__schema' in responseData.data)) {
-      identifyProblem(`Introspection query received a response of ${miniIntrospectionQueryResponse.body}. Does introspection need to be turned on?`)
+      if (!('data' in responseData) || !('__schema' in responseData.data)) {
+        identifyProblem(`Introspection query received a response of ${miniIntrospectionQueryResponse.body}. Does introspection need to be turned on?`)
+      }
+    } catch (e) {
+      identifyProblem(
+        `Introspection query could not parse "${miniIntrospectionQueryResponse.body}" As valid json. Here is the error: `,
+        e,
+        e.message
+      );
     }
+
   }
 
   if (!hasIdentifiedProblem) {
