@@ -3,6 +3,7 @@
   "version": "1.0.11",
   "description": "",
   "main": "index.js",
+  "repository": "apollographql/diagnose-endpoint",
   "scripts": {
     "start": "node index.js",
     "test": "node index.js --endpoint=https://gql.reddit.com"
