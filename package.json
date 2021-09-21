@@ -11,7 +11,7 @@
   "bin": {
     "diagnose-endpoint": "./index.js"
   },
-  "author": "Chang Wang <cheapsteak@gmail.com> (https://github.com/cheapsteak)",
+  "author": "Apollo Graph",
   "license": "MIT",
   "dependencies": {
     "commander": "8.1.0",
