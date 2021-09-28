@@ -1,6 +1,6 @@
 {
   "name": "diagnose-endpoint",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "",
   "main": "index.js",
   "repository": "apollographql/diagnose-endpoint",
