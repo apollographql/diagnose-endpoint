@@ -165,7 +165,7 @@ const options = program.opts();
 
   if (!hasIdentifiedProblem) {
     console.log(
-      `Could not find any problems with the endpoint. Would you please to let us know about this at explorer-feedback@apollographql.com 🙏`
+      `Failed to diagnose any problems with the endpoint. Please email explorer-feedback@apollographql.com with the endpoint to help us investigate🙏`
     );
   }
 })();
