@@ -2,6 +2,7 @@
 
 const { Command } = require("commander");
 const got = require("got");
+const { buildClientSchema, validateSchema } = require('graphql');
 
 const program = new Command();
 
@@ -152,6 +153,14 @@ const options = program.opts();
 
       if (!('data' in responseData) || !('__schema' in responseData.data)) {
         identifyProblem(`Introspection query received a response of ${miniIntrospectionQueryResponse.body}. Does introspection need to be turned on?`)
+      } else {
+        const schemaFromIntrospection = buildClientSchema(responseData.data);
+        const validationErrors = validateSchema(schemaFromIntrospection);
+        if (validationErrors.length) {
+          identifyProblem(
+            `Invalid schema from introspection: ${validationErrors}`
+          );
+        }
       }
     } catch (e) {
       identifyProblem(
