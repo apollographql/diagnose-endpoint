@@ -2,7 +2,7 @@
 
 const { Command } = require("commander");
 const got = require("got");
-const { buildClientSchema, validateSchema } = require('graphql');
+const { buildClientSchema, validateSchema, getIntrospectionQuery } = require('graphql');
 
 const program = new Command();
 
@@ -131,16 +131,9 @@ const options = program.opts();
 
   if (!hasIdentifiedProblem) {
     // Only check for introspection problems if there are no other problems found
-    const miniIntrospectionQueryResponse = await got.post(options.endpoint, {
+    const introspectionQueryResponse = await got.post(options.endpoint, {
       json: {
-        query: `query MiniIntrospectionQuery {
-          __schema {
-            queryType { name }
-            mutationType { name }
-            subscriptionType { name }
-          }
-        }
-      `,
+        query: getIntrospectionQuery(),
       },
       headers: {
         origin: options.origin,
@@ -149,10 +142,10 @@ const options = program.opts();
     });
 
     try {
-      const responseData = JSON.parse(miniIntrospectionQueryResponse.body)
+      const responseData = JSON.parse(introspectionQueryResponse.body)
 
       if (!('data' in responseData) || !('__schema' in responseData.data)) {
-        identifyProblem(`Introspection query received a response of ${miniIntrospectionQueryResponse.body}. Does introspection need to be turned on?`)
+        identifyProblem(`Introspection query received a response of ${introspectionQueryResponse.body}. Does introspection need to be turned on?`)
       } else {
         const schemaFromIntrospection = buildClientSchema(responseData.data);
         const validationErrors = validateSchema(schemaFromIntrospection);
@@ -164,7 +157,7 @@ const options = program.opts();
       }
     } catch (e) {
       identifyProblem(
-        `Introspection query could not parse "${miniIntrospectionQueryResponse.body}" As valid json. Here is the error: `,
+        `Introspection query could not parse "${introspectionQueryResponse.body}" As valid json. Here is the error: `,
         e,
         e.message
       );
