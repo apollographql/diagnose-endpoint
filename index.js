@@ -37,7 +37,7 @@ const options = program.opts();
       client.on('connectFailed', (error) => {
         identifyProblem(`Connect Failed: ${error.toString()}`);
         if (!error.code) {
-          error.code = "ECONNFAILED";
+          error.code = "ENOTFOUND";
         }
         reject(error);
       });
@@ -138,11 +138,6 @@ const options = program.opts();
       case "ECONNREFUSED":
         identifyProblem(
           `Connection refused (ECONNREFUSED)\nIs the address correct?\nIs the server running?`
-        );
-        break;
-      case "ECONNFAILED":
-        identifyProblem(
-          `Bad request\nIs the address correct?\nIs the server running?`
         );
         break;
       default:
