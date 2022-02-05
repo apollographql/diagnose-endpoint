@@ -140,6 +140,11 @@ const options = program.opts();
           `Connection refused (ECONNREFUSED)\nIs the address correct?\nIs the server running?`
         );
         break;
+      case "EPROTO":
+        identifyProblem(
+          `Protocol wrong type for socket (EPROTO)\nIs the address correct?\nIs the server running?`
+        );
+        break;
       default:
         // unexpected error
         identifyProblem(
