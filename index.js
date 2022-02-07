@@ -19,47 +19,47 @@ program.parse(process.argv);
 
 const options = program.opts();
 
-(async () => {
-  let hasIdentifiedProblem = false;
-  let hasIdentifiedCorsProblem = false;
-  const identifyProblem = (...problemDescription) => {
-    hasIdentifiedProblem = true;
-    console.log("⚠️ ", ...problemDescription);
-  };
-  const identifyCorsProblem = (...problemDescription) => {
-    identifyProblem(...problemDescription);
-    hasIdentifiedCorsProblem = true;
-  }
-
-  const socket = (endpoint) => {
-    return new Promise((resolve, reject) => {
-      const client = new WebSocketClient();
-      client.on('connectFailed', (error) => {
-        identifyProblem(`Connect Failed: ${error.toString()}`);
-        if (!error.code) {
-          error.code = "ENOTFOUND";
-        }
+const diagnoseWebSocket = (endpoint, origin) => {
+  return new Promise((resolve, reject) => {
+    const client = new WebSocketClient();
+    client.on('connectFailed', (error) => {
+      identifyProblem(`Connect Failed: ${error.toString()}`);
+      if (!error.code) {
+        error.code = "ENOTFOUND";
+      }
+      reject(error);
+    });
+    
+    client.on('connect', (connection) => {
+      connection.on('error', (error) => {
+        identifyProblem(`Connection Error: ${error.toString()}`);
         reject(error);
       });
-      
-      client.on('connect', (connection) => {
-        connection.on('error', (error) => {
-          identifyProblem(`Connection Error: ${error.toString()}`);
-          reject(error);
-        });
-        connection.on('close', () => {
-          resolve();
-        });
+      connection.on('close', () => {
+        resolve();
       });
-        
-      client.connect(endpoint);
-  })};
-  const isWebSocket = options.endpoint.toLowerCase().startsWith("ws:") || options.endpoint.toLowerCase().startsWith("wss:");
+    });
+      
+    client.connect(endpoint, undefined, origin);
+})};
+
+let hasIdentifiedProblem = false;
+let hasIdentifiedCorsProblem = false;
+const identifyProblem = (...problemDescription) => {
+  hasIdentifiedProblem = true;
+  console.log("⚠️ ", ...problemDescription);
+};
+const identifyCorsProblem = (...problemDescription) => {
+  identifyProblem(...problemDescription);
+  hasIdentifiedCorsProblem = true;
+}
+(async () => {
+  const isWebSocket = !!options.endpoint.match(/^wss?:/i);
 
   try {
     console.log(`Diagnosing ${options.endpoint}`);
     if (isWebSocket) {
-      await socket(options.endpoint);
+      await diagnoseWebSocket(options.endpoint, options.origin);
     } else {
       const optionsResponse = await got(options.endpoint, {
         method: "OPTIONS",
