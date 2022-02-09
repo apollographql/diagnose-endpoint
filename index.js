@@ -3,6 +3,7 @@
 const { Command } = require("commander");
 const got = require("got");
 const { buildClientSchema, validateSchema, getIntrospectionQuery } = require('graphql');
+const WebSocketClient = require('websocket').client;
 
 const program = new Command();
 
@@ -18,6 +19,28 @@ program.parse(process.argv);
 
 const options = program.opts();
 
+const diagnoseWebSocket = (endpoint, origin) => {
+  return new Promise((resolve, reject) => {
+    const client = new WebSocketClient();
+    client.on('connectFailed', (error) => {
+      if (!error.code) {
+        error.code = "ENOTFOUND";
+      }
+      reject(error);
+    });
+    
+    client.on('connect', (connection) => {
+      connection.on('error', (error) => {
+        reject(error);
+      });
+      connection.on('close', () => {
+        resolve();
+      });
+    });
+      
+    client.connect(endpoint, undefined, origin);
+})};
+
 (async () => {
   let hasIdentifiedProblem = false;
   let hasIdentifiedCorsProblem = false;
@@ -29,74 +52,79 @@ const options = program.opts();
     identifyProblem(...problemDescription);
     hasIdentifiedCorsProblem = true;
   }
+  const isWebSocket = !!options.endpoint.match(/^wss?:/i);
 
   try {
     console.log(`Diagnosing ${options.endpoint}`);
-    const optionsResponse = await got(options.endpoint, {
-      method: "OPTIONS",
-      headers: {
-        "access-control-request-method": "POST",
-        origin: options.origin,
-      },
-      throwHttpErrors: false,
-    });
+    if (isWebSocket) {
+      await diagnoseWebSocket(options.endpoint, options.origin);
+    } else {
+      const optionsResponse = await got(options.endpoint, {
+        method: "OPTIONS",
+        headers: {
+          "access-control-request-method": "POST",
+          origin: options.origin,
+        },
+        throwHttpErrors: false,
+      });
 
-    if (optionsResponse.statusCode === 401) {
-      identifyProblem(
-        `OPTIONS response returned 401. Are authorization headers or cookies required?`
-      );
-    } else if (optionsResponse.statusCode === 404) {
-      identifyProblem(
-        `OPTIONS response returned 404. Is the url correct? Are authorization headers or cookies required?`
-      );
-    }
+      if (optionsResponse.statusCode === 401) {
+        identifyProblem(
+          `OPTIONS response returned 401. Are authorization headers or cookies required?`
+        );
+      } else if (optionsResponse.statusCode === 404) {
+        identifyProblem(
+          `OPTIONS response returned 404. Is the url correct? Are authorization headers or cookies required?`
+        );
+      }
 
-    if (
-      !(
-        optionsResponse.headers["access-control-allow-methods"] &&
-        optionsResponse.headers["access-control-allow-methods"].includes("POST")
-      )
-    ) {
-      identifyCorsProblem(
-        `OPTIONS response is missing header 'access-control-allow-methods: POST'`
-      );
-    }
+      if (
+        !(
+          optionsResponse.headers["access-control-allow-methods"] &&
+          optionsResponse.headers["access-control-allow-methods"].includes("POST")
+        )
+      ) {
+        identifyCorsProblem(
+          `OPTIONS response is missing header 'access-control-allow-methods: POST'`
+        );
+      }
 
-    const pingResponse = await got.post(options.endpoint, {
-      json: {
-        query: `query Ping { __typename }`,
-      },
-      headers: {
-        origin: options.origin,
-      },
-      throwHttpErrors: false,
-    });
+      const pingResponse = await got.post(options.endpoint, {
+        json: {
+          query: `query Ping { __typename }`,
+        },
+        headers: {
+          origin: options.origin,
+        },
+        throwHttpErrors: false,
+      });
 
-    if (pingResponse.statusCode === 401) {
-      identifyProblem(
-        `POST response returned 401. Are authorization headers or cookies required?`
-      );
-    } else if (pingResponse.statusCode === 404) {
-      identifyProblem(
-        `POST response returned 404. Is the url correct? Are authorization headers or cookies required?`
-      );
-    }
+      if (pingResponse.statusCode === 401) {
+        identifyProblem(
+          `POST response returned 401. Are authorization headers or cookies required?`
+        );
+      } else if (pingResponse.statusCode === 404) {
+        identifyProblem(
+          `POST response returned 404. Is the url correct? Are authorization headers or cookies required?`
+        );
+      }
 
-    if (
-      !pingResponse.headers["access-control-allow-origin"] ||
-      (pingResponse.headers["access-control-allow-origin"] !== "*" &&
-        pingResponse.headers["access-control-allow-origin"] !== options.origin)
-    ) {
-      identifyCorsProblem(
-        [
-          `POST response missing 'access-control-allow-origin' header.`,
-          `If using cookie-based authentication, the following headers are required from your endpoint: `,
-          `    access-control-allow-origin: https://studio.apollographql.com`,
-          `    access-control-allow-credentials: true`,
-          `Otherwise, a wildcard value would work:`,
-          `    access-control-allow-origin: *`,
-        ].join("\n")
-      );
+      if (
+        !pingResponse.headers["access-control-allow-origin"] ||
+        (pingResponse.headers["access-control-allow-origin"] !== "*" &&
+          pingResponse.headers["access-control-allow-origin"] !== options.origin)
+      ) {
+        identifyCorsProblem(
+          [
+            `POST response missing 'access-control-allow-origin' header.`,
+            `If using cookie-based authentication, the following headers are required from your endpoint: `,
+            `    access-control-allow-origin: https://studio.apollographql.com`,
+            `    access-control-allow-credentials: true`,
+            `Otherwise, a wildcard value would work:`,
+            `    access-control-allow-origin: *`,
+          ].join("\n")
+        );
+      }
     }
   } catch (e) {
     switch (e.code) {
@@ -108,6 +136,11 @@ const options = program.opts();
       case "ECONNREFUSED":
         identifyProblem(
           `Connection refused (ECONNREFUSED)\nIs the address correct?\nIs the server running?`
+        );
+        break;
+      case "EPROTO":
+        identifyProblem(
+          `Protocol wrong type for socket (EPROTO)\nIs the address correct?\nIs the server running?`
         );
         break;
       default:
@@ -129,7 +162,7 @@ const options = program.opts();
     );
   }
 
-  if (!hasIdentifiedProblem) {
+  if (!hasIdentifiedProblem && !isWebSocket) {
     // Only check for introspection problems if there are no other problems found
     const introspectionQueryResponse = await got.post(options.endpoint, {
       json: {
