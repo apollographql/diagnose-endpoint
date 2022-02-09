@@ -23,7 +23,6 @@ const diagnoseWebSocket = (endpoint, origin) => {
   return new Promise((resolve, reject) => {
     const client = new WebSocketClient();
     client.on('connectFailed', (error) => {
-      identifyProblem(`Connect Failed: ${error.toString()}`);
       if (!error.code) {
         error.code = "ENOTFOUND";
       }
@@ -32,7 +31,6 @@ const diagnoseWebSocket = (endpoint, origin) => {
     
     client.on('connect', (connection) => {
       connection.on('error', (error) => {
-        identifyProblem(`Connection Error: ${error.toString()}`);
         reject(error);
       });
       connection.on('close', () => {
@@ -43,17 +41,17 @@ const diagnoseWebSocket = (endpoint, origin) => {
     client.connect(endpoint, undefined, origin);
 })};
 
-let hasIdentifiedProblem = false;
-let hasIdentifiedCorsProblem = false;
-const identifyProblem = (...problemDescription) => {
-  hasIdentifiedProblem = true;
-  console.log("⚠️ ", ...problemDescription);
-};
-const identifyCorsProblem = (...problemDescription) => {
-  identifyProblem(...problemDescription);
-  hasIdentifiedCorsProblem = true;
-}
 (async () => {
+  let hasIdentifiedProblem = false;
+  let hasIdentifiedCorsProblem = false;
+  const identifyProblem = (...problemDescription) => {
+    hasIdentifiedProblem = true;
+    console.log("⚠️ ", ...problemDescription);
+  };
+  const identifyCorsProblem = (...problemDescription) => {
+    identifyProblem(...problemDescription);
+    hasIdentifiedCorsProblem = true;
+  }
   const isWebSocket = !!options.endpoint.match(/^wss?:/i);
 
   try {
