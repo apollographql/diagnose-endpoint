@@ -14,7 +14,7 @@
   "author": "Apollo Graph",
   "license": "MIT",
   "dependencies": {
-    "commander": "8.1.0",
+    "commander": "8.3.0",
     "got": "11.8.2",
     "graphql": "16.0.0",
     "websocket": "^1.0.34"
