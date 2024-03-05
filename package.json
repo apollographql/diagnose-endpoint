@@ -16,7 +16,7 @@
   "dependencies": {
     "commander": "8.3.0",
     "got": "11.8.2",
-    "graphql": "16.0.0",
+    "graphql": "16.8.1",
     "websocket": "^1.0.34"
   }
 }
