@@ -118,7 +118,7 @@ const diagnoseWebSocket = (endpoint, origin) => {
           [
             `POST response missing 'access-control-allow-origin' header.`,
             `If using cookie-based authentication, the following headers are required from your endpoint: `,
-            `    access-control-allow-origin: https://studio.apollographql.com`,
+            `    access-control-allow-origin: ${options.origin}`,
             `    access-control-allow-credentials: true`,
             `Otherwise, a wildcard value would work:`,
             `    access-control-allow-origin: *`,
