@@ -15,7 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "commander": "8.3.0",
-    "got": "^11.8.6",
+    "got": "^14.0.0",
     "graphql": "16.8.1",
     "websocket": "^1.0.34"
   }
