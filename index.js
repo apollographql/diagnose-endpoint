@@ -197,7 +197,7 @@ const diagnoseWebSocket = (endpoint, origin) => {
 
   if (!hasIdentifiedProblem) {
     console.log(
-      `Failed to diagnose any problems with the endpoint. Please email explorer-feedback@apollographql.com with the endpoint to help us investigate🙏`
+      `Failed to diagnose the problems with the endpoint.`
     );
   }
 })();
