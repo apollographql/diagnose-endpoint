@@ -150,9 +150,6 @@ const diagnoseWebSocket = (endpoint, origin) => {
           e,
           e.message
         );
-        console.log(
-          `Would you care to let us know about this? Please mailto:explorer-feedback@apollographql.com`
-        );
     }
   }
 
